@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8" />
+        <title>PAKIMAN</title>
+        <link rel="stylesheet" href="./styles.css">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" /> 
+    </head>
+    <body>
+        <section id="seleccionar-bestia">
+            <h1 class="titulo">Pakiman</h1>
+            <h2 class="subtitulo">Elige a tu bestia, bro:</h2>
+
+            <div id="contenedorTarjetas" class="tarjetas">
+                
+            </div>
+
+            <button id="button-bestia">Seleccionar</button>
+        </section>
+
+        <section id="ver-mapa">
+            <h2 class="subtitulo"> Recorre el mapa con tu pakiman, broster</h2>
+            <canvas id="mapa"></canvas>
+            <button 
+                ontouchend="detenerMovimiento()"  
+                onmouseup="detenerMovimiento()" 
+                onmousedown="moverArriba()"
+                ontouchstart="moverArriba()"
+            >Arriba</button>
+            <div>
+                <button  
+                    onmouseup="detenerMovimiento()"
+                    ontouchend="detenerMovimiento()" 
+                    onmousedown="moverIzquierda()"
+                    ontouchstart="moverIzquierda()"
+                >Izquierda</button>
+                <button 
+                    onmouseup="detenerMovimiento()"
+                    ontouchend="detenerMovimiento()" 
+                    onmousedown="moverAbajo()"
+                    ontouchstart="moverAbajo()"
+                >Abajo</button>
+                <button 
+                    onmouseup="detenerMovimiento()"
+                    ontouchend="detenerMovimiento()" 
+                    onmousedown="moverDerecha()"
+                    ontouchstart="moverDerecha()"
+                >Derecha</button>
+            </div>
+        </section>
+
+        <section id="seleccionar-ataque">
+            <h1 class="titulo">Pakiman</h1>
+            <h2 class="subtitulo">Elige tu ataque, bro:</h2>
+
+            <div id="contenedorAtaques" class="tarjetas-ataques">
+                
+            </div>
+  
+            <div id="mensajebro">
+                <p id="resultado">Damn, bro, let's do it</p>
+
+                <div id="reiniciar">
+                    <button id="button-reiniciar">Reiniciar</button>
+                </div>
+            </div>
+
+            <div class="ataques">
+
+                <div class="ataques-jugador">
+                    <P id="vidas-jugador">0</P>
+                    <p id="bestia-jugador"></p>
+                    <div id="ataque-del-jugador"></div>
+                </div>
+
+                <div class="ataques-enemigo">
+                    <p id="vidas-enemigo">0</p>
+                    <p id="bestia-enemigo"></p>
+                    <div id="ataque-del-enemigo"></div>    
+                </div>
+
+            </div>
+
+        </section>
+        <script src="./JS/pakiman.js"></script>
+    </body>
+</html>
