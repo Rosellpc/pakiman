@@ -20,294 +20,271 @@ const contenedorAtaques = document.getElementById('contenedorAtaques')
 const sectionVerMapa = document.getElementById('ver-mapa')
 const mapa =document.getElementById('mapa')
 
+const estadoConexion = document.getElementById('estado-conexion')
+const reintentar = document.getElementById('reintentar')
 let jugadorId = null
 let enemigoId = null
-let pakimanes = []
+let estado = 'conectando'
+let bestiaJugador
+let bestiaJugadorObjeto
 let pakimanesEnemigos = []
 let ataqueJugador = []
 let ataqueEnemigo = []
-let opcionDePakimanes
-let inputSuytun
-let inputRatulia
-let inputKatybara
-let bestiaJugador
-let bestiaJugadorObjeto
-let ataquesPakiman
-let ataquesPakimanEnemigo
-let buttonFuego
-let buttonAgua   
-let buttonTierra
-let buttons = []
 let indexAtaqueJugador
 let indexAtaqueEnemigo
 let victoriasJugador = 0
 let victoriasEnemigo = 0
-let vidasJugador = 3
-let vidasEnemigo = 3
-let lienzo = mapa.getContext("2d")
-let intervalo
-let mapaBackground = new Image()
+let pendienteReintento = null
+let animacion
+let ultimoFrame = null
+const teclas = new Set()
+const punteros = new Map()
+const lienzo = mapa.getContext('2d')
+const mapaBackground = new Image()
 mapaBackground.src = './img/map.webp'
-let alturaQueBuscamos
-let anchoDelMapa = window.innerWidth -50
-const anchoMaximoDelMapa = 800
-
-if (anchoDelMapa > anchoMaximoDelMapa) {
-    anchoDelMapa = anchoMaximoDelMapa -50
-}
-
-alturaQueBuscamos = anchoDelMapa * 600 / 800
-
-mapa.width = anchoDelMapa
-mapa.height = alturaQueBuscamos
-
+// Todas las pantallas usan el mismo mundo; CSS adapta su tamaño visual.
+mapa.width = 800
+mapa.height = 600
 class Pakiman {
-    constructor(nombre, foto, vida, fotoMapa, id = null) {
-        this.id = id
+    constructor(nombre, foto, ataques, id = null) {
         this.nombre = nombre
         this.foto = foto
-        this.vida = vida
-        this.ataques = []
-        this.ancho = 80
-        this.alto = 80
+        this.ataques = ataques
+        this.id = id
+        this.ancho = this.alto = 80
         this.x = aleatorio(0, mapa.width - this.ancho)
         this.y = aleatorio(0, mapa.height - this.alto)
         this.mapaFoto = new Image()
-        this.mapaFoto.src = fotoMapa
-        this.velocidadX = 0
-        this.velocidadY = 0
+        this.mapaFoto.src = foto
     }
-
     pintarPakiman() {
-        lienzo.drawImage(
-            this.mapaFoto,
-            this.x,
-            this.y,
-            this.ancho,
-            this.alto
-        )
+        if (this.mapaFoto.complete && this.mapaFoto.naturalWidth) {
+            lienzo.drawImage(this.mapaFoto, this.x, this.y, this.ancho, this.alto)
+        }
     }
- }
-
-let suytun = new Pakiman('Suytun', './img/Litia.png', 5, './img/Litia.png')
-let ratulia = new Pakiman('Ratulia', './img/Rayan.png', 5, './img/Rayan.png')
-let katybara = new Pakiman('Katybara', './img/Ryujin.png', 5, './img/Ryujin.png')
-
-const SUYTUN_ATAQUES = [ 
-    { nombre: '💧', id: 'boton-agua' },
-    { nombre: '💧', id: 'boton-agua' },
-    { nombre: '💧', id: 'boton-agua' },
-    { nombre: '🔥', id: 'boton-fuego' },
-    { nombre: '🌱', id: 'boton-tierra' },
-]
-suytun.ataques.push(...SUYTUN_ATAQUES)
-
-const RATULIA_ATAQUES = [
-    { nombre: '💧', id: 'boton-agua' },
-    { nombre: '💧', id: 'boton-agua' },
-    { nombre: '💧', id: 'boton-agua' },
-    { nombre: '🔥', id: 'boton-fuego' },
-    { nombre: '🌱', id: 'boton-tierra' },
-]
-
-ratulia.ataques.push(...RATULIA_ATAQUES)
-
-const KATYBARA_ATAQUES = [
-    { nombre: '🌱', id: 'boton-tierra' },
-    { nombre: '🌱', id: 'boton-tierra' },
-    { nombre: '🌱', id: 'boton-tierra' },
-    { nombre: '💧', id: 'boton-agua' },
-    { nombre: '🔥', id: 'boton-fuego' },
-]
-
-katybara.ataques.push(...KATYBARA_ATAQUES)
-
-pakimanes.push(suytun, ratulia, katybara) 
-
-function iniciarJuego() {
-    sectionSeleccionarAtaque.style.display = 'none'
-    sectionVerMapa.style.display = 'none'
-
-    pakimanes.forEach((pakiman) => {
-        opcionDePakimanes = `
-        <input type="radio" name="bestia" id=${pakiman.nombre} />
-        <label class="tarjeta-de-pakiman" for=${pakiman.nombre}>
-            <p>${pakiman.nombre}</p>
-            <img src=${pakiman.foto} alt=${pakiman.nombre}>
-        </label>
-        `
-    contenedorTarjetas.innerHTML += opcionDePakimanes  
-
-    inputSuytun = document.getElementById('Suytun')
-    inputRatulia = document.getElementById('Ratulia')
-    inputKatybara = document.getElementById('Katybara')
-    
-    })
-
-    buttonBestiaJugador.addEventListener('click', selecionarBestiaJugador)
-    buttonReiniciar.addEventListener('click', reiniciarJuego)
-
-    unirseAlJuego()
 }
-
-function unirseAlJuego() {
-    fetch("http://192.168.0.104:8080/unirse")
-        .then(function (res) {
-            if (res.ok) {
-                res.text()
-                    .then(function (respuesta) {
-                        console.log(respuesta)
-                        jugadorId = respuesta
-                    })
-            }
+const pakimanes = [
+    new Pakiman('Suytun', './img/Litia.png', ['AGUA', 'AGUA', 'AGUA', 'FUEGO', 'TIERRA']),
+    new Pakiman('Ratulia', './img/Rayan.png', ['AGUA', 'AGUA', 'AGUA', 'FUEGO', 'TIERRA']),
+    new Pakiman('Katybara', './img/Ryujin.png', ['TIERRA', 'TIERRA', 'TIERRA', 'AGUA', 'FUEGO'])
+]
+function mostrarEstado(mensaje) { estadoConexion.textContent = mensaje }
+function ofrecerReintento(error, accion) {
+    mostrarEstado(error.message)
+    pendienteReintento = accion
+    reintentar.hidden = false
+}
+async function solicitar(ruta, datos) {
+    const controller = new AbortController()
+    const timeout = setTimeout(() => controller.abort(), 5000)
+    try {
+        const res = await fetch(ruta, {
+            method: datos === undefined ? 'GET' : 'POST',
+            headers: datos === undefined ? {} : { 'Content-Type': 'application/json' },
+            body: datos === undefined ? undefined : JSON.stringify(datos),
+            signal: controller.signal,
+            cache: 'no-store'
         })
+        if (!res.ok) {
+            const error = new Error(res.status === 404 ? 'La sesión ya no existe. Reinicia la partida.' : 'El servidor rechazó la petición. Puedes reintentar.')
+            error.status = res.status
+            throw error
+        }
+        return res.status === 204 ? null : await res.text()
+    } catch (error) {
+        if (error.status) throw error
+        throw new Error('No se pudo conectar al servidor. Comprueba la conexión y reintenta.')
+    } finally { clearTimeout(timeout) }
 }
-
-function selecionarBestiaJugador() {
-
-    if (inputSuytun.checked) {
-        spanBestiaJugador.innerHTML = inputSuytun.id
-        bestiaJugador = inputSuytun.id                                            
-    } else if (inputRatulia.checked) {
-        spanBestiaJugador.innerHTML = inputRatulia.id
-        bestiaJugador = inputRatulia.id
-    } else if (inputKatybara.checked) {
-        spanBestiaJugador.innerHTML = inputKatybara.id
-        bestiaJugador = inputKatybara.id
-    } else {
-        alert('Selecciona una bestia, bro')
-        return
-    }
-    
-    sectionSeleccionarBestia.style.display = 'none'
-
-    seleccionarPakiman(bestiaJugador)
-    extraerAtaques(bestiaJugador)
-    sectionVerMapa.style.display = 'flex'
-    iniciarMapa()
+async function unirseAlJuego() {
+    buttonBestiaJugador.disabled = true
+    mostrarEstado('Conectando al servidor...')
+    try {
+        jugadorId = await solicitar('/unirse')
+        estado = 'seleccion'
+        buttonBestiaJugador.disabled = false
+        mostrarEstado('Conectado. Elige tu bestia.')
+    } catch (error) { ofrecerReintento(error, unirseAlJuego) }
 }
-
-function seleccionarPakiman(bestiaJugador) {
-    fetch(`http://192.168.0.104:8080/pakiman/${jugadorId}`, {
-        method: "post",
-        headers: {
-            "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-            pakiman: bestiaJugador
-        })
-    })
-
+async function selecionarBestiaJugador() {
+    if (estado !== 'seleccion') return
+    const seleccionado = document.querySelector('input[name="bestia"]:checked')
+    if (!seleccionado) { mostrarEstado('Selecciona una bestia para continuar.'); return }
+    buttonBestiaJugador.disabled = true
+    mostrarEstado('Confirmando tu bestia...')
+    try {
+        await solicitar(`/pakiman/${jugadorId}`, { pakiman: seleccionado.id })
+        bestiaJugador = seleccionado.id
+        bestiaJugadorObjeto = pakimanes.find(p => p.nombre === bestiaJugador)
+        spanBestiaJugador.textContent = bestiaJugador
+        mostrarAtaques(bestiaJugadorObjeto.ataques)
+        sectionSeleccionarBestia.style.display = 'none'
+        sectionVerMapa.style.display = 'flex'
+        estado = 'mapa'
+        mostrarEstado('Busca un rival en el mapa.')
+        ultimoFrame = null
+        animacion = requestAnimationFrame(pintarCanvas)
+    } catch (error) {
+        if (error.status === 404) terminarPorDesconexion(error.message)
+        else ofrecerReintento(error, selecionarBestiaJugador)
+    } finally { buttonBestiaJugador.disabled = estado !== 'seleccion' }
 }
-
-function extraerAtaques(bestiaJugador) {
-    let ataques
-    for (let i = 0; i < pakimanes.length; i++) {
-        if (bestiaJugador === pakimanes[i].nombre) {
-            ataques = pakimanes[i].ataques
-        } 
-    }
-    mostrarAtaques(ataques)
-}
-
 function mostrarAtaques(ataques) {
-    contenedorAtaques.innerHTML = ""; // Limpiar ataques anteriores
-
-    ataques.forEach((ataque) => {
-        const button = document.createElement("button");
-        button.id = ataque.id;
-        button.classList.add("button-de-ataque", "BAtaque");
-        button.textContent = ataque.nombre;
-        contenedorAtaques.appendChild(button);
-    });
-
-    buttons = document.querySelectorAll('.BAtaque'); // Actualizar buttons
-}
-
-
-function secuenciaAtaque() {
-    buttons.forEach((button) => {
-        button.addEventListener('click', (e) => {
-            if (e.target.textContent === '🔥') {
-                ataqueJugador.push('FUEGO')
-                console.log(ataqueJugador)
-                button.style.background = '#112f58' 
-                button.disabled = true  
-            } else if (e.target.textContent === '💧') {
-                ataqueJugador.push('AGUA')
-                console.log(ataqueJugador)
-                button.style.background = '#112f58'
-                button.disabled = true  
-            } else {
-                ataqueJugador.push('TIERRA')
-                console.log(ataqueJugador)
-                button.style.background = '#112f58'
-                button.disabled = true  
-            }
-            if(ataqueJugador.length === 5) {
-                enviarAtaques()
-            }
+    const iconos = { AGUA: '💧', FUEGO: '🔥', TIERRA: '🌱' }
+    contenedorAtaques.replaceChildren()
+    ataques.forEach((ataque, index) => {
+        const button = document.createElement('button')
+        button.id = `ataque-${index}`
+        button.className = 'button-de-ataque BAtaque'
+        button.textContent = iconos[ataque]
+        button.setAttribute('aria-label', ataque)
+        button.addEventListener('click', () => {
+            if (estado !== 'combate' || button.disabled) return
+            ataqueJugador.push(ataque)
+            button.disabled = true
+            mostrarEstado(`Ataques elegidos: ${ataqueJugador.length} de 5.`)
+            if (ataqueJugador.length === 5) enviarAtaques()
         })
+        contenedorAtaques.appendChild(button)
     })
 }
-
-function enviarAtaques() {
-    fetch(`http://192.168.0.104:8080/pakiman/${jugadorId}/ataques`, {
-        method: "post",
-        headers: {
-            "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-            ataques: ataqueJugador
-        })
-    })
-
-    intervalo = setInterval(obtenerAtaques, 50)
-}
-  
-function obtenerAtaques() {
-    fetch(`http://192.168.0.104:8080/pakiman/${jugadorId}/ataques`)
-        .then(function (res) {
-            if (res.ok) {
-                res.json()
-                    .then(function ({ ataques }) {
-                        if (ataques.length === 5) {
-                            ataqueEnemigo = ataques
-                            combate()
-                        }
-                    })
-            }
-        })
-}
-
-function seleccionarBestiaEnemigo (enemigo) {
-    spanBestiaEnemigo.innerHTML = enemigo.nombre
-    ataquesPakimanEnemigo = enemigo.ataques
-  
-    secuenciaAtaque()
-
-}
-
-function ataqueAleatorioEnemigo() {
-    console.log('Error o no', ataquesPakimanEnemigo)
-    let ataqueAleatorio = aleatorio(0, ataquesPakimanEnemigo.length -1)
-
-    if (ataqueAleatorio == 0 || ataqueAleatorio == 1) {
-        ataqueEnemigo.push('FUEGO')
-    } else if (ataqueAleatorio == 3 || ataqueAleatorio == 4) {
-        ataqueEnemigo.push('AGUA')
-    } else {
-        ataqueEnemigo.push('TIERRA')
+async function enviarAtaques() {
+    estado = 'enviando'
+    mostrarEstado('Enviando ataques...')
+    try {
+        await solicitar(`/pakiman/${jugadorId}/ataques`, { ataques: ataqueJugador })
+        estado = 'esperando'
+        mostrarEstado('Esperando los ataques del rival...')
+    } catch (error) {
+        if (error.status === 404) terminarPorDesconexion(error.message)
+        else ofrecerReintento(error, enviarAtaques)
     }
-    console.log(ataqueEnemigo)
-    iniciarPelea()
 }
-
-function iniciarPelea() {
-    if(ataqueJugador.length === 5) {
+async function obtenerAtaques() {
+    const { ataques } = JSON.parse(await solicitar(`/pakiman/${enemigoId}/ataques`))
+    if (estado === 'esperando' && ataques.length === 5) {
+        ataqueEnemigo = ataques
         combate()
     }
 }
+function terminarPorDesconexion(mensaje) {
+    estado = 'terminado'
+    detenerMovimiento()
+    cancelAnimationFrame(animacion)
+    mostrarEstado(mensaje)
+    reintentar.hidden = true
+    sectionButtonReiniciar.style.display = 'block'
+    // También permite reiniciar desde selección o mapa.
+    sectionSeleccionarAtaque.style.display = 'flex'
+    sectionVerMapa.style.display = 'none'
+    sectionMensajes.textContent = mensaje
+    contenedorAtaques.querySelectorAll('button').forEach(b => { b.disabled = true })
+}
+// Un único ciclo espera cada petición: nunca se superponen sincronizaciones.
+async function sincronizar() {
+    try {
+        if (jugadorId && estado !== 'terminado') {
+            if (estado === 'mapa') await enviarPosicion()
+            else {
+                await solicitar(`/pakiman/${jugadorId}/latido`, {})
+                if (estado === 'esperando') await obtenerAtaques()
+            }
+        }
+    } catch (error) {
+        if (error.status === 404) terminarPorDesconexion('Tu sesión o la del rival terminó. Reinicia para volver a jugar.')
+        else mostrarEstado(error.message + ' Reintentando automáticamente...')
+    } finally { setTimeout(sincronizar, estado === 'mapa' ? 150 : estado === 'esperando' ? 500 : 3000) }
+}
+async function enviarPosicion() {
+    const { enemigos } = JSON.parse(await solicitar(`/pakiman/${jugadorId}/posicion`, {
+        x: bestiaJugadorObjeto.x, y: bestiaJugadorObjeto.y
+    }))
+    if (estado !== 'mapa') return
+    const anteriores = new Map(pakimanesEnemigos.map(p => [p.id, p]))
+    pakimanesEnemigos = enemigos.flatMap(enemigo => {
+        const plantilla = pakimanes.find(p => p.nombre === enemigo.pakiman?.nombre)
+        if (!plantilla || !Number.isFinite(enemigo.x) || !Number.isFinite(enemigo.y) || enemigo.x < 0 || enemigo.y < 0) return []
+        const p = anteriores.get(enemigo.id) || new Pakiman(plantilla.nombre, plantilla.foto, plantilla.ataques, enemigo.id)
+        p.x = enemigo.x
+        p.y = enemigo.y
+        return [p]
+    })
+    mostrarEstado(pakimanesEnemigos.length ? 'Acércate a un rival para combatir.' : 'Esperando que otro jugador entre al mapa...')
+}
+function pintarCanvas(tiempo) {
+    if (estado !== 'mapa') return
+    const delta = ultimoFrame === null ? 0 : Math.min((tiempo - ultimoFrame) / 1000, .05)
+    ultimoFrame = tiempo
+    const direcciones = new Set([...teclas, ...punteros.values()])
+    let dx = Number(direcciones.has('derecha')) - Number(direcciones.has('izquierda'))
+    let dy = Number(direcciones.has('abajo')) - Number(direcciones.has('arriba'))
+    const longitud = Math.hypot(dx, dy) || 1
+    bestiaJugadorObjeto.x = Math.max(0, Math.min(mapa.width - 80, bestiaJugadorObjeto.x + dx / longitud * 100 * delta))
+    bestiaJugadorObjeto.y = Math.max(0, Math.min(mapa.height - 80, bestiaJugadorObjeto.y + dy / longitud * 100 * delta))
+    lienzo.clearRect(0, 0, mapa.width, mapa.height)
+    if (mapaBackground.complete && mapaBackground.naturalWidth) lienzo.drawImage(mapaBackground, 0, 0, mapa.width, mapa.height)
+    bestiaJugadorObjeto.pintarPakiman()
+    for (const enemigo of pakimanesEnemigos) {
+        enemigo.pintarPakiman()
+        revisarColision(enemigo)
+        if (estado !== 'mapa') break
+    }
+    if (estado === 'mapa') animacion = requestAnimationFrame(pintarCanvas)
+}
+function revisarColision(enemigo) {
+    const p = bestiaJugadorObjeto
+    if (estado !== 'mapa' || p.x + p.ancho < enemigo.x || p.x > enemigo.x + enemigo.ancho || p.y + p.alto < enemigo.y || p.y > enemigo.y + enemigo.alto) return
+    detenerMovimiento()
+    enemigoId = enemigo.id
+    estado = 'combate'
+    sectionVerMapa.style.display = 'none'
+    sectionSeleccionarAtaque.style.display = 'flex'
+    spanBestiaEnemigo.textContent = enemigo.nombre
+    mostrarEstado('Elige tus cinco ataques.')
+}
+function detenerMovimiento() { teclas.clear(); punteros.clear(); ultimoFrame = null }
+function iniciarJuego() {
+    sectionSeleccionarAtaque.style.display = 'none'
+    sectionVerMapa.style.display = 'none'
+    sectionButtonReiniciar.style.display = 'none'
+    for (const p of pakimanes) {
+        contenedorTarjetas.insertAdjacentHTML('beforeend', `<input type="radio" name="bestia" id="${p.nombre}" /><label class="tarjeta-de-pakiman" for="${p.nombre}"><p>${p.nombre}</p><img src="${p.foto}" alt="${p.nombre}"></label>`)
+    }
+    buttonBestiaJugador.addEventListener('click', selecionarBestiaJugador)
+    buttonReiniciar.addEventListener('click', reiniciarJuego)
+    reintentar.addEventListener('click', () => {
+        const accion = pendienteReintento
+        reintentar.hidden = true
+        pendienteReintento = null
+        if (accion) accion()
+    })
+    const direcciones = { ArrowUp: 'arriba', ArrowDown: 'abajo', ArrowLeft: 'izquierda', ArrowRight: 'derecha' }
+    window.addEventListener('keydown', e => {
+        if (estado === 'mapa' && direcciones[e.key]) { e.preventDefault(); teclas.add(direcciones[e.key]) }
+    })
+    window.addEventListener('keyup', e => { teclas.delete(direcciones[e.key]) })
+    window.addEventListener('blur', detenerMovimiento)
+    document.addEventListener('visibilitychange', detenerMovimiento)
+    document.querySelectorAll('[data-direccion]').forEach(button => {
+        button.addEventListener('pointerdown', e => {
+            if (estado !== 'mapa') return
+            e.preventDefault()
+            button.setPointerCapture(e.pointerId)
+            punteros.set(e.pointerId, button.dataset.direccion)
+        })
+        for (const evento of ['pointerup', 'pointercancel', 'lostpointercapture']) {
+            button.addEventListener(evento, e => { punteros.delete(e.pointerId) })
+        }
+    })
+    unirseAlJuego()
+    sincronizar()
+}
+window.addEventListener('pagehide', () => {
+    detenerMovimiento()
+    if (jugadorId) navigator.sendBeacon(`/pakiman/${jugadorId}/salir`, '')
+})
+window.addEventListener('pageshow', e => { if (e.persisted) location.reload() })
+window.addEventListener('load', iniciarJuego)
 
 function indexAmbosOponentes(jugador, enemigo) {
     indexAtaqueJugador = ataqueJugador[jugador]
@@ -316,7 +293,9 @@ function indexAmbosOponentes(jugador, enemigo) {
 }
 
 function combate() {
-    clearInterval(intervalo)
+    if (estado === 'terminado') return
+    estado = 'terminado'
+    mostrarEstado('Partida terminada.')
     for (let index = 0; index < ataqueJugador.length; index++) {
         if(ataqueJugador[index] === ataqueEnemigo[index]) {
             indexAmbosOponentes(index, index)
@@ -353,7 +332,7 @@ function revisarVidas() {
     } else if(victoriasJugador > victoriasEnemigo) {
         crearMensajeFinal('¡FELICITACIONES! GANASTE, BRO :(')
     } else {
-        crearMensaje('PERDISTE CON EL REY')
+        crearMensajeFinal('PERDISTE CON EL REY')
     }
 }
 
@@ -382,154 +361,3 @@ function aleatorio(min, max) {
     return Math.floor(Math.random() * (max - min + 1) + min)
 }
 
-function pintarCanvas() {
-    bestiaJugadorObjeto.x = bestiaJugadorObjeto.x + bestiaJugadorObjeto.velocidadX
-    bestiaJugadorObjeto.y = bestiaJugadorObjeto.y + bestiaJugadorObjeto.velocidadY
-    lienzo.clearRect(0, 0, mapa.clientWidth, mapa.height)
-    lienzo.drawImage(
-        mapaBackground,
-        0,
-        0,
-        mapa.width,
-        mapa.height
-    )
-    bestiaJugadorObjeto.pintarPakiman()
-
-    enviarPosicion(bestiaJugadorObjeto.x, bestiaJugadorObjeto.y)
-
-    pakimanesEnemigos.forEach(function (pakiman) {
-        pakiman.pintarPakiman()
-        revisarColision(pakiman)
-    })
-      
-}
-
-function enviarPosicion(x, y) {
-    fetch(`http://192.168.0.104:8080/pakiman/${jugadorId}/posicion`, {
-        method: "post",
-        headers: {
-            "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-            x,
-            y
-        })
-    })
-    .then(function (res) {
-        if(res.ok) {
-            res.json()
-                .then(function({ enemigos }) {
-                    console.log(enemigos)
-                    pakimanesEnemigos = enemigos.map(function (enemigo) {
-                        let pakimanEnemigo = null
-                        const pakimanNombre = enemigo.pakiman.nombre || ""
-                        if(pakimanNombre === "Suytun") {
-                            pakimanEnemigo = new Pakiman('Suytun', './img/Litia.png', 5, './img/Litia.png', enemigoId)
-                        } else if(pakimanNombre === "Ratulia") {
-                            pakimanEnemigo = new Pakiman('Ratulia', './img/Rayan.png', 5, './img/Rayan.png', enemigoId)
-                        } else if(pakimanNombre === "Katybara") {
-                            pakimanEnemigo = new Pakiman('Katybara', './img/Ryujin.png', 5, './img/Ryujin.png', enemigoId)
-                        }
-
-                        pakimanEnemigo.x = enemigo.x
-                        pakimanEnemigo.y = enemigo.y
-                        return pakimanEnemigo
-                    })
-                })
-        }
-    })
-
-
-}
-
-function moverDerecha() {
-    bestiaJugadorObjeto.velocidadX = 5
-}
-
-function moverIzquierda() {
-    bestiaJugadorObjeto.velocidadX = -5
-}
-
-function moverAbajo() {
-    bestiaJugadorObjeto.velocidadY = 5
-}
-
-function moverArriba() {
-    bestiaJugadorObjeto.velocidadY = -5
-}
-
-function detenerMovimiento() {
-    bestiaJugadorObjeto.velocidadX = 0
-    bestiaJugadorObjeto.velocidadY = 0
-}
-
-function sePresionoUnaTecla(event) {
-    switch (event.key) {
-        case 'ArrowUp':
-            moverArriba()
-            break 
-        case 'ArrowDown':
-            moverAbajo()
-            break                  
-        case 'ArrowLeft':
-            moverIzquierda()
-            break
-        case 'ArrowRight':
-            moverDerecha()
-            break
-        default:
-            break
-    }
-}
-
-function iniciarMapa() {
-    bestiaJugadorObjeto = obtenerObjetoBestia(bestiaJugador)
-    console.log(bestiaJugadorObjeto, bestiaJugador)
-    intervalo = setInterval(pintarCanvas, 60)
-    window.addEventListener('keydown', sePresionoUnaTecla)
-    window.addEventListener('keyup', detenerMovimiento)
-}
-
-function obtenerObjetoBestia(bestiaJugador) {
-    let ataques
-    for (let i = 0; i < pakimanes.length; i++) {
-        if (bestiaJugador === pakimanes[i].nombre) {
-            return pakimanes[i]
-        } 
-    }
-}
-
-function revisarColision(enemigo) {
-    const arribaEnemigo = enemigo.y
-    const abajoEnemigo = enemigo.y + enemigo.alto
-    const derechaEnemigo = enemigo.x + enemigo.ancho
-    const izquierdaEnemigo = enemigo.x
-
-    const arribaBestia = bestiaJugadorObjeto.y
-    const abajoBestia = bestiaJugadorObjeto.y + bestiaJugadorObjeto.alto
-    const derechaBestia = bestiaJugadorObjeto.x + bestiaJugadorObjeto.ancho
-    const izquierdaBestia = bestiaJugadorObjeto.x
-
-
-    if(
-        abajoBestia < arribaEnemigo ||
-        arribaBestia > abajoEnemigo ||
-        derechaBestia < izquierdaEnemigo ||
-        izquierdaBestia > derechaEnemigo
-    ) {
-        return
-    }
-
-    detenerMovimiento()
-    clearInterval(intervalo)
-    console.log('Hay mecha, bro')
-
-    enemigoId = enemigoId
-    sectionSeleccionarAtaque.style.display = 'flex'
-    sectionVerMapa.style.display = 'none'
-    seleccionarBestiaEnemigo(enemigo)
-
-}
-
-
-window.addEventListener('load', iniciarJuego)

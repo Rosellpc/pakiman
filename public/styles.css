@@ -147,3 +147,9 @@ input[type="radio"]:checked + label {
         flex-direction: column;
     }
 }
+#estado-conexion { color: white; text-align: center; }
+#reintentar { display: block; margin: 10px auto; }
+#reintentar[hidden] { display: none; }
+button:disabled { opacity: .5; cursor: wait; }
+#ver-mapa button { touch-action: none; }
+#mapa { width: min(800px, calc(100vw - 32px)); max-width: 100%; height: auto; }

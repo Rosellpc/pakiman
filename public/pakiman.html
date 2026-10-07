@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html>
+<html lang="es">
     <head>
         <meta charset="utf-8" />
         <title>PAKIMAN</title>
@@ -7,6 +7,8 @@
         <meta name="viewport" content="width=device-width, initial-scale=1.0" /> 
     </head>
     <body>
+        <p id="estado-conexion" role="status" aria-live="polite">Conectando al servidor...</p>
+        <button id="reintentar" hidden>Reintentar</button>
         <section id="seleccionar-bestia">
             <h1 class="titulo">Pakiman</h1>
             <h2 class="subtitulo">Elige a tu bestia, bro:</h2>
@@ -15,37 +17,17 @@
                 
             </div>
 
-            <button id="button-bestia">Seleccionar</button>
+            <button id="button-bestia" disabled>Seleccionar</button>
         </section>
 
         <section id="ver-mapa">
             <h2 class="subtitulo"> Recorre el mapa con tu pakiman, broster</h2>
             <canvas id="mapa"></canvas>
-            <button 
-                ontouchend="detenerMovimiento()"  
-                onmouseup="detenerMovimiento()" 
-                onmousedown="moverArriba()"
-                ontouchstart="moverArriba()"
-            >Arriba</button>
+            <button data-direccion="arriba">Arriba</button>
             <div>
-                <button  
-                    onmouseup="detenerMovimiento()"
-                    ontouchend="detenerMovimiento()" 
-                    onmousedown="moverIzquierda()"
-                    ontouchstart="moverIzquierda()"
-                >Izquierda</button>
-                <button 
-                    onmouseup="detenerMovimiento()"
-                    ontouchend="detenerMovimiento()" 
-                    onmousedown="moverAbajo()"
-                    ontouchstart="moverAbajo()"
-                >Abajo</button>
-                <button 
-                    onmouseup="detenerMovimiento()"
-                    ontouchend="detenerMovimiento()" 
-                    onmousedown="moverDerecha()"
-                    ontouchstart="moverDerecha()"
-                >Derecha</button>
+                <button data-direccion="izquierda">Izquierda</button>
+                <button data-direccion="abajo">Abajo</button>
+                <button data-direccion="derecha">Derecha</button>
             </div>
         </section>
 
