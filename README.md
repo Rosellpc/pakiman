@@ -24,3 +24,13 @@ Conecta el celular al mismo router que el computador. Consulta la IPv4 del compu
 ```powershell
 npm.cmd test
 ```
+
+## Estructura
+
+- `index.js`: inicia el servidor y la limpieza de sesiones.
+- `server/`: aplicación Express, rutas y almacenamiento de jugadores.
+- `public/JS/main.mjs`: inicia el cliente mediante módulos ES nativos, sin compilación.
+- `public/JS/`: datos, API, sincronización, controles, mapa, vista y coordinación del juego. Las reglas de combate son independientes del navegador.
+- `tests/`: pruebas del servidor y de los módulos del cliente.
+
+Las sesiones se guardan en memoria y se pierden al reiniciar el servidor. El almacenamiento está separado para facilitar una futura persistencia.
